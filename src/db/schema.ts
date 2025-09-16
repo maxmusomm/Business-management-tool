@@ -1,0 +1,75 @@
+import { integer, pgTable, varchar, text } from "drizzle-orm/pg-core";
+
+export const usersTable = pgTable("users", {
+  id: integer().primaryKey().generatedAlwaysAsIdentity(),
+  name: varchar({ length: 255 }).notNull(),
+  age: integer().notNull(),
+  email: varchar({ length: 255 }).notNull().unique(),
+});
+
+// Invoices table
+export const invoicesTable = pgTable("invoices", {
+  id: integer().primaryKey().generatedAlwaysAsIdentity(),
+  invoice_number: varchar({ length: 64 }).notNull().unique(),
+  customer_id: integer(), // optional FK to users/customers table
+  bill_to: text().notNull(), // JSON string of billing block
+  from_info: text().notNull(), // JSON string of sender block
+  project: varchar({ length: 255 }),
+  issued_at: varchar({ length: 64 }).notNull(), // ISO date string
+  due_at: varchar({ length: 64 }),
+  payment_terms: varchar({ length: 128 }),
+  subtotal_cents: integer(),
+  tax_cents: integer(),
+  total_cents: integer(),
+  currency: varchar({ length: 3 }).notNull().default("USD"),
+  status: varchar({ length: 32 }).notNull().default("draft"),
+  paid_at: varchar({ length: 64 }),
+  paid_amount_cents: integer(),
+  line_item_count: integer(),
+  notes: text(),
+  metadata: text(), // JSON string for flexibility
+  created_by: integer(),
+  created_at: varchar({ length: 64 }).notNull(),
+  updated_at: varchar({ length: 64 }).notNull(),
+});
+
+// Quotations table
+export const quotationsTable = pgTable("quotations", {
+  id: integer().primaryKey().generatedAlwaysAsIdentity(),
+  quotation_number: varchar({ length: 64 }).notNull().unique(),
+  customer_id: integer(),
+  bill_to: text().notNull(),
+  from_info: text().notNull(),
+  project: varchar({ length: 255 }),
+  issued_at: varchar({ length: 64 }).notNull(),
+  valid_until: varchar({ length: 64 }),
+  payment_terms: varchar({ length: 128 }),
+  subtotal_cents: integer(),
+  tax_cents: integer(),
+  total_cents: integer(),
+  currency: varchar({ length: 3 }).notNull().default("USD"),
+  status: varchar({ length: 32 }).notNull().default("draft"),
+  accepted_at: varchar({ length: 64 }),
+  line_item_count: integer(),
+  notes: text(),
+  metadata: text(),
+  created_by: integer(),
+  created_at: varchar({ length: 64 }).notNull(),
+  updated_at: varchar({ length: 64 }).notNull(),
+});
+
+// Line items table (shared for invoices and quotations)
+export const lineItemsTable = pgTable("line_items", {
+  id: integer().primaryKey().generatedAlwaysAsIdentity(),
+  parent_type: varchar({ length: 16 }).notNull(), // 'invoice' or 'quotation'
+  parent_id: integer().notNull(),
+  position: integer(),
+  title: varchar({ length: 255 }).notNull(),
+  description: text(),
+  quantity: varchar({ length: 32 }).notNull().default("1"),
+  unit_price_cents: integer().notNull().default(0),
+  total_cents: integer().notNull().default(0),
+  tax_rate: varchar({ length: 16 }),
+  created_at: varchar({ length: 64 }).notNull(),
+  updated_at: varchar({ length: 64 }).notNull(),
+});

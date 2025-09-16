@@ -158,7 +158,7 @@ export default function NewInvoicePage() {
     window.open(url, "_blank");
   }
 
-  function downloadPdf() {
+  async function downloadPdf() {
     const data = {
       quotationNumber: invoiceNumber,
       quoteDate: invoiceDate,
@@ -176,27 +176,42 @@ export default function NewInvoicePage() {
       logoUrl,
     };
 
-    fetch("/api/quotations/pdf", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    })
-      .then(async (res) => {
-        if (!res.ok) throw new Error("PDF generation failed");
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `${invoiceNumber.replace(/[^a-z0-9\-_.]/gi, "_")}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
-      })
-      .catch((err) => {
-        console.error(err);
-        alert("Failed to generate PDF. Check server logs.");
+    // Best-effort: save invoice metadata to backend before PDF
+    try {
+      await fetch("/api/invoices", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...data,
+          subtotal: subtotal,
+          tax: tax,
+          total: total,
+        }),
       });
+    } catch (err) {
+      console.warn("Warning: saving invoice metadata failed", err);
+    }
+
+    try {
+      const res = await fetch("/api/quotations/pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error("PDF generation failed");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${invoiceNumber.replace(/[^a-z0-9\-_.]/gi, "_")}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to generate PDF. Check server logs.");
+    }
   }
 
   return (
@@ -259,7 +274,7 @@ export default function NewInvoicePage() {
             />
           </label>
 
-          <label className="block">
+          <div className="block">
             <div className="flex gap-2 mt-3">
               <button
                 onClick={generateHtml}
@@ -280,7 +295,7 @@ export default function NewInvoicePage() {
                 Download
               </button>
             </div>
-          </label>
+          </div>
         </div>
 
         <div className="md:col-span-2 space-y-4">

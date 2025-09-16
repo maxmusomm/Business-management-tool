@@ -174,8 +174,8 @@ export default function NewQuotationPage() {
     window.open(url, "_blank");
   }
 
-  function downloadHtml() {
-    // send quotation data to API to generate PDF and download it
+  async function downloadHtml() {
+    // Prepare data used for PDF generation
     const data = {
       quotationNumber,
       quoteDate,
@@ -193,27 +193,44 @@ export default function NewQuotationPage() {
       logoUrl,
     };
 
-    fetch("/api/quotations/pdf", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    })
-      .then(async (res) => {
-        if (!res.ok) throw new Error("PDF generation failed");
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `${quotationNumber.replace(/[^a-z0-9\-_.]/gi, "_")}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
-      })
-      .catch((err) => {
-        console.error(err);
-        alert("Failed to generate PDF. Check server logs.");
+    // Best-effort: save metadata to the backend before generating PDF
+    try {
+      await fetch("/api/quotations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...data,
+          subtotal: subtotal,
+          tax: tax,
+          total: total,
+        }),
       });
+    } catch (err) {
+      // non-fatal: log and continue to PDF generation
+      console.warn("Warning: saving quotation metadata failed", err);
+    }
+
+    // Request PDF generation and download
+    try {
+      const res = await fetch("/api/quotations/pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error("PDF generation failed");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${quotationNumber.replace(/[^a-z0-9\-_.]/gi, "_")}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to generate PDF. Check server logs.");
+    }
   }
 
   return (
@@ -276,7 +293,7 @@ export default function NewQuotationPage() {
             />
           </label>
 
-          <label className="block">
+          <div className="block">
             <div className="flex gap-2 mt-3">
               <button
                 onClick={generateHtml}
@@ -297,7 +314,7 @@ export default function NewQuotationPage() {
                 Download
               </button>
             </div>
-          </label>
+          </div>
         </div>
 
         <div className="md:col-span-2 space-y-4">
