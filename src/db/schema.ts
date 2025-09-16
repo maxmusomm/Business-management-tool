@@ -1,19 +1,12 @@
-import { integer, pgTable, varchar, text } from "drizzle-orm/pg-core";
-
-export const usersTable = pgTable("users", {
-  id: integer().primaryKey().generatedAlwaysAsIdentity(),
-  name: varchar({ length: 255 }).notNull(),
-  age: integer().notNull(),
-  email: varchar({ length: 255 }).notNull().unique(),
-});
+import { integer, pgTable, varchar, text, json } from "drizzle-orm/pg-core";
 
 // Invoices table
 export const invoicesTable = pgTable("invoices", {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
   invoice_number: varchar({ length: 64 }).notNull().unique(),
   customer_id: integer(), // optional FK to users/customers table
-  bill_to: text().notNull(), // JSON string of billing block
-  from_info: text().notNull(), // JSON string of sender block
+  bill_to: json().notNull(), // JSON string of billing block
+  from_info: json().notNull(), // JSON string of sender block
   project: varchar({ length: 255 }),
   issued_at: varchar({ length: 64 }).notNull(), // ISO date string
   due_at: varchar({ length: 64 }),
@@ -27,7 +20,7 @@ export const invoicesTable = pgTable("invoices", {
   paid_amount_cents: integer(),
   line_item_count: integer(),
   notes: text(),
-  metadata: text(), // JSON string for flexibility
+  metadata: json(), // JSON string for flexibility
   created_by: integer(),
   created_at: varchar({ length: 64 }).notNull(),
   updated_at: varchar({ length: 64 }).notNull(),
@@ -38,8 +31,8 @@ export const quotationsTable = pgTable("quotations", {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
   quotation_number: varchar({ length: 64 }).notNull().unique(),
   customer_id: integer(),
-  bill_to: text().notNull(),
-  from_info: text().notNull(),
+  bill_to: json().notNull(),
+  from_info: json().notNull(),
   project: varchar({ length: 255 }),
   issued_at: varchar({ length: 64 }).notNull(),
   valid_until: varchar({ length: 64 }),
@@ -52,7 +45,7 @@ export const quotationsTable = pgTable("quotations", {
   accepted_at: varchar({ length: 64 }),
   line_item_count: integer(),
   notes: text(),
-  metadata: text(),
+  metadata: json(),
   created_by: integer(),
   created_at: varchar({ length: 64 }).notNull(),
   updated_at: varchar({ length: 64 }).notNull(),

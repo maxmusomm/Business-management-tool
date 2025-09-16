@@ -1,3 +1,5 @@
+export const runtime = "nodejs";
+
 import { NextRequest } from "next/server";
 import { db } from "../../../src/db/client";
 import { quotationsTable } from "../../../src/db/schema";
@@ -34,10 +36,16 @@ export async function POST(req: NextRequest) {
     return new Response(JSON.stringify({ ok: true, inserted: insert }), {
       status: 201,
     });
-  } catch (err) {
-    console.error(err);
-    return new Response(JSON.stringify({ error: "Insert failed" }), {
-      status: 500,
-    });
+  } catch (err: any) {
+    console.error("Quotations insert error:", err);
+    return new Response(
+      JSON.stringify({
+        error: "Insert failed",
+        message: err?.message || String(err),
+      }),
+      {
+        status: 500,
+      }
+    );
   }
 }

@@ -1,3 +1,5 @@
+export const runtime = "nodejs";
+
 import type { NextRequest } from "next/server";
 import { quotationHtmlTemplate } from "../../../../lib/quotation-template";
 import { createPdfBuffer } from "../../../../lib/quotation-template-server";
