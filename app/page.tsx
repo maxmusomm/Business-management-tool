@@ -1,69 +1,139 @@
-import Image from "next/image";
+"use server";
+import { db } from "../src/db/client";
+import { invoicesTable, quotationsTable } from "../src/db/schema";
+import GmailAccountsDropdown from "./components/GmailAccountsDropdown";
+import NavBar from "./components/NavBar";
 
-export default function Home() {
+type Activity = {
+  id: number;
+  date: string; // ISO string
+  type: "Invoice" | "Quotation";
+  amount: number; // in cents
+  status: string;
+  number?: string; // invoice_number or quotation_number
+  clientName?: string;
+  clientEmail?: string;
+  clientCompany?: string;
+  clientAddress1?: string;
+  clientAddress2?: string;
+  clientPhone?: string;
+};
+
+// Get Database activities
+async function getRecentActivities() {
+  // Server-side: query the DB directly to avoid using fetch in server runtime
+  const [invoices, quotations] = await Promise.all([
+    db.select().from(invoicesTable).limit(16),
+    db.select().from(quotationsTable).limit(16),
+  ]);
+
+  const recentActivity: any[] = [...invoices, ...quotations];
+
+  // Sort ascending by created_at (oldest first)
+  recentActivity.sort((a, b) => {
+    const ta = a.created_at ? new Date(String(a.created_at)).getTime() : 0;
+    const tb = b.created_at ? new Date(String(b.created_at)).getTime() : 0;
+    return ta - tb;
+  });
+
+  const mapped: Activity[] = recentActivity.map((row: any) => {
+    const isInvoice = !!row.invoice_number;
+    const isQuotation = !!row.quotation_number;
+    const date = row.created_at ?? row.issued_at ?? new Date().toISOString();
+    const amount = row.total_cents ?? row.total ?? 0;
+    const status = row.status ?? "draft";
+    const id = row.id ?? Math.floor(Math.random() * 1e9);
+    const number = isInvoice
+      ? row.invoice_number
+      : isQuotation
+      ? row.quotation_number
+      : undefined;
+    // Parse bill_to (may be JSON string or an object)
+    let billTo: any = row.bill_to ?? null;
+    if (billTo && typeof billTo === "string") {
+      try {
+        billTo = JSON.parse(billTo);
+      } catch (e) {
+        // ignore parse error
+      }
+    }
+    const clientName = billTo ? billTo.name || undefined : undefined;
+    const clientCompany = billTo ? billTo.company || undefined : undefined;
+    const clientAddress1 = billTo
+      ? billTo.addressLine1 || undefined
+      : undefined;
+    const clientAddress2 = billTo
+      ? billTo.addressLine2 || undefined
+      : undefined;
+    const clientPhone = billTo ? billTo.phone || undefined : undefined;
+    const clientEmail = billTo ? billTo.email || undefined : undefined;
+    return {
+      id,
+      date: typeof date === "string" ? date : String(date),
+      type: isInvoice ? "Invoice" : "Quotation",
+      amount: typeof amount === "number" ? amount : Number(amount) || 0,
+      status,
+      number,
+      clientName,
+      clientEmail,
+      clientCompany,
+      clientAddress1,
+      clientAddress2,
+      clientPhone,
+    } as Activity;
+  });
+
+  return mapped;
+}
+
+function formatMoney(cents: number, currency = "ZMW") {
+  const value = cents / 100;
+  return new Intl.NumberFormat(undefined, {
+    style: "currency",
+    currency,
+  }).format(value);
+}
+
+export default async function Home() {
+  const activities = await getRecentActivities();
+
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 p-8 sm:p-12">
-      <header className="max-w-6xl mx-auto flex items-center justify-between mb-8">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold">
-            IP
-          </div>
-          <div>
-            <h1 className="text-xl font-semibold">InvoicePro</h1>
-            <div className="text-sm text-slate-500">
-              Simple invoices & quotations
-            </div>
-          </div>
-        </div>
-        <nav className="flex gap-4 text-sm text-slate-600">
-          <a className="px-3 py-2 rounded-md bg-white shadow-sm" href="/">
-            Dashboard
-          </a>
-          <a
-            className="px-3 py-2 rounded-md hover:bg-white/60"
-            href="/invoices/new"
-          >
-            Invoices
-          </a>
-          <a
-            className="px-3 py-2 rounded-md hover:bg-white/60"
-            href="/quotations/new"
-          >
-            Quotations
-          </a>
-          <a
-            className="px-3 py-2 rounded-md hover:bg-white/60"
-            href="/products"
-          >
-            Products
-          </a>
-          <a
-            className="px-3 py-2 rounded-md hover:bg-white/60"
-            href="/settings"
-          >
-            Settings
-          </a>
-        </nav>
-      </header>
-
+    <div className="min-h-screen p-6 sm:p-12">
       <main className="max-w-6xl mx-auto">
-        <h2 className="text-3xl font-bold mb-2">Dashboard</h2>
-        <p className="text-slate-600 mb-6">
+        {/*
+          Navbar (daisyui)
+          Component references used in this file for maintainers:
+          - Navbar: https://daisyui.com/components/navbar/
+          - Button: https://daisyui.com/components/button/
+          - Card: https://daisyui.com/components/card/
+          - Dropdown: https://daisyui.com/components/dropdown/
+          - Badge: https://daisyui.com/components/badge/
+          - Input: https://daisyui.com/components/input/
+          - Textarea: https://daisyui.com/components/textarea/
+        */}
+
+        {/* Navbar */}
+        {/* <NavBar /> */}
+
+        <h2 className="text-3xl font-bold mb-2 text-white">Dashboard</h2>
+        <p className="text-white/90 mb-6">
           Here's a quick overview of your activities.
         </p>
 
         <section className="mb-8">
-          <h3 className="text-lg font-semibold mb-3">Quick Actions</h3>
+          <h3 className="text-lg font-semibold mb-3 text-white/95">
+            Quick Actions
+          </h3>
           <div className="flex gap-4">
             <a
               href="/invoices/new"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-md shadow"
+              className=" btn btn-soft btn-primary rounded"
             >
               Create New Invoice
             </a>
             <a
               href="/quotations/new"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-slate-200 text-slate-800 rounded-md"
+              className="btn btn-accent rounded text-white"
             >
               Create New Quotation
             </a>
@@ -71,70 +141,67 @@ export default function Home() {
         </section>
 
         <section>
-          <h3 className="text-lg font-semibold mb-3">Recent Activities</h3>
-          <div className="bg-white shadow rounded-md overflow-hidden">
-            <table className="w-full text-left">
-              <thead className="bg-slate-50">
-                <tr>
-                  <th className="px-6 py-3 text-sm text-slate-500">Date</th>
-                  <th className="px-6 py-3 text-sm text-slate-500">Type</th>
-                  <th className="px-6 py-3 text-sm text-slate-500">Amount</th>
-                  <th className="px-6 py-3 text-sm text-slate-500">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr className="border-t">
-                  <td className="px-6 py-4">2024-07-26</td>
-                  <td className="px-6 py-4">Invoice</td>
-                  <td className="px-6 py-4">$1,500.00</td>
-                  <td className="px-6 py-4">
-                    <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-sm">
-                      Paid
-                    </span>
-                  </td>
-                </tr>
-                <tr className="border-t">
-                  <td className="px-6 py-4">2024-07-25</td>
-                  <td className="px-6 py-4">Quotation</td>
-                  <td className="px-6 py-4">$2,000.00</td>
-                  <td className="px-6 py-4">
-                    <span className="px-3 py-1 rounded-full bg-sky-100 text-sky-700 text-sm">
-                      Sent
-                    </span>
-                  </td>
-                </tr>
-                <tr className="border-t">
-                  <td className="px-6 py-4">2024-07-24</td>
-                  <td className="px-6 py-4">Invoice</td>
-                  <td className="px-6 py-4">$800.00</td>
-                  <td className="px-6 py-4">
-                    <span className="px-3 py-1 rounded-full bg-amber-100 text-amber-700 text-sm">
-                      Pending
-                    </span>
-                  </td>
-                </tr>
-                <tr className="border-t">
-                  <td className="px-6 py-4">2024-07-23</td>
-                  <td className="px-6 py-4">Invoice</td>
-                  <td className="px-6 py-4">$2,200.00</td>
-                  <td className="px-6 py-4">
-                    <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-sm">
-                      Paid
-                    </span>
-                  </td>
-                </tr>
-                <tr className="border-t">
-                  <td className="px-6 py-4">2024-07-22</td>
-                  <td className="px-6 py-4">Quotation</td>
-                  <td className="px-6 py-4">$1,200.00</td>
-                  <td className="px-6 py-4">
-                    <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-sm">
-                      Accepted
-                    </span>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+          <h3 className="text-lg font-semibold mb-3 text-white/95">
+            Recent Activities
+          </h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {activities.length === 0 ? (
+              <div className="card bg-white/10 shadow-lg text-white/90 p-6">
+                No recent activities
+              </div>
+            ) : (
+              activities.map((act) => (
+                <div
+                  className="card bg-white/10 shadow-lg p-4 text-white/95"
+                  key={`${act.type}-${act.id}`}
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <div className="text-sm opacity-90">
+                        {new Date(act.date).toISOString().slice(0, 10)}
+                      </div>
+                      <div className="font-bold text-lg mt-1">
+                        {act.clientName ?? act.clientCompany ?? "—"}
+                      </div>
+                      {act.clientCompany && act.clientName && (
+                        <div className="text-xs opacity-80">
+                          {act.clientCompany}
+                        </div>
+                      )}
+                      {act.clientAddress1 && (
+                        <div className="text-xs opacity-80">
+                          {act.clientAddress1}
+                        </div>
+                      )}
+                      {act.clientAddress2 && (
+                        <div className="text-xs opacity-80">
+                          {act.clientAddress2}
+                        </div>
+                      )}
+                      {act.clientPhone && (
+                        <div className="text-xs opacity-80">
+                          Phone: {act.clientPhone}
+                        </div>
+                      )}
+                      {act.clientEmail && (
+                        <div className="text-xs opacity-80">
+                          Email: {act.clientEmail}
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <div className="badge badge-lg badge-secondary text-white">
+                        {act.type}
+                      </div>
+                      <div className="text-xl font-semibold mt-2">
+                        {formatMoney(act.amount)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </section>
       </main>

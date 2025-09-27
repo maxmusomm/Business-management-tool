@@ -1,4 +1,11 @@
-import { integer, pgTable, varchar, text, json } from "drizzle-orm/pg-core";
+import {
+  integer,
+  pgTable,
+  varchar,
+  text,
+  json,
+  timestamp,
+} from "drizzle-orm/pg-core";
 
 // Invoices table
 export const invoicesTable = pgTable("invoices", {
@@ -22,8 +29,8 @@ export const invoicesTable = pgTable("invoices", {
   notes: text(),
   metadata: json(), // JSON string for flexibility
   created_by: integer(),
-  created_at: varchar({ length: 64 }).notNull(),
-  updated_at: varchar({ length: 64 }).notNull(),
+  created_at: timestamp().defaultNow(),
+  updated_at: timestamp().defaultNow(),
 });
 
 // Quotations table
@@ -47,22 +54,6 @@ export const quotationsTable = pgTable("quotations", {
   notes: text(),
   metadata: json(),
   created_by: integer(),
-  created_at: varchar({ length: 64 }).notNull(),
-  updated_at: varchar({ length: 64 }).notNull(),
-});
-
-// Line items table (shared for invoices and quotations)
-export const lineItemsTable = pgTable("line_items", {
-  id: integer().primaryKey().generatedAlwaysAsIdentity(),
-  parent_type: varchar({ length: 16 }).notNull(), // 'invoice' or 'quotation'
-  parent_id: integer().notNull(),
-  position: integer(),
-  title: varchar({ length: 255 }).notNull(),
-  description: text(),
-  quantity: varchar({ length: 32 }).notNull().default("1"),
-  unit_price_cents: integer().notNull().default(0),
-  total_cents: integer().notNull().default(0),
-  tax_rate: varchar({ length: 16 }),
-  created_at: varchar({ length: 64 }).notNull(),
-  updated_at: varchar({ length: 64 }).notNull(),
+  created_at: timestamp().defaultNow(),
+  updated_at: timestamp().defaultNow(),
 });

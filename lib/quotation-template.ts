@@ -184,7 +184,9 @@ const quotationHtmlTemplate = (
             position: relative;
             overflow: hidden;
         }
-
+        .logo-img{
+            width: 385px;
+        }
 
 
         .quotation-title {
@@ -456,7 +458,7 @@ const quotationHtmlTemplate = (
     <div class="quotation-container">
         <div class="header">
                 <div class="logo-space">
-                <img src="${d.logoUrl}" alt="Logo">
+                <img src="${d.logoUrl}" alt="Logo" class="logo-img">
             </div>
             <div class="quotation-title">${titleText}</div>
             <div class="quotation-number">${d.quotationNumber}</div>
