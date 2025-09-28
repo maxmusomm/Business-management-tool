@@ -471,6 +471,32 @@ export default function NewQuotationPage() {
           </label>
 
           <div className="block">
+            {/* Notice about email sending limitations */}
+            <div className="mb-3">
+              <div className="alert alert-info shadow-lg">
+                <div>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="stroke-current flex-shrink-0 h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M13 16h-1v-4h-1m1-4h.01M12 20.5c4.142 0 7.5-3.358 7.5-7.5S16.142 5.5 12 5.5 4.5 8.858 4.5 13 7.858 20.5 12 20.5z"
+                    />
+                  </svg>
+                  <span>
+                    Email send is only available for authorized accounts. To
+                    enable sending from your email address, contact the
+                    developer to configure Gmail authorization for your account.
+                    Otherwise, use the Download action to save the PDF locally.
+                  </span>
+                </div>
+              </div>
+            </div>
             <div className="flex gap-2 mt-3">
               <button
                 onClick={generateHtml}
